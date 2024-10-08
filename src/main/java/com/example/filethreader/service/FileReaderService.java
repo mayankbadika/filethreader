@@ -4,17 +4,12 @@ import com.example.filethreader.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
-
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 
 @Service
 public class FileReaderService {
@@ -111,6 +106,39 @@ public class FileReaderService {
 
         return CompletableFuture.completedFuture(allUsers); // Return the combined result
     }
+
+    /*
+     * In CompletableFuture, both join() and get() are used to wait for the completion
+     * of the asynchronous task and retrieve the result. However, there are key differences:
+     *
+     * 1. Exception Handling:
+     *    - get(): Throws checked exceptions, specifically InterruptedException and ExecutionException.
+     *             You are forced to handle or declare these exceptions.
+     *    - join(): Throws an unchecked CompletionException (which wraps the actual exception).
+     *              No need to handle checked exceptions explicitly.
+     *
+     * 2. Blocking Behavior:
+     *    - Both get() and join() block the current thread until the result is available.
+     *      However, get() forces you to handle checked exceptions, while join() does not.
+     *
+     * 3. Use Case:
+     *    - get(): Use when you want more control over exception handling with checked exceptions.
+     *    - join(): Use when you prefer a simpler approach without checked exceptions.
+     *
+     * Example:
+     * CompletableFuture<Integer> future = CompletableFuture.supplyAsync(() -> 42);
+     *
+     * // Using get():
+     * try {
+     *     Integer result = future.get();  // Must handle InterruptedException, ExecutionException
+     * } catch (InterruptedException | ExecutionException e) {
+     *     e.printStackTrace();
+     * }
+     *
+     * // Using join():
+     * Integer result = future.join();  // No need to handle checked exceptions, might throw CompletionException
+     */
+
 
     public List<User> readMultipleFilesHelper(String path) throws Exception {
         String threadName = Thread.currentThread().getName();
