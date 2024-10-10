@@ -1,5 +1,6 @@
 package com.example.filethreader.service;
 
+import com.example.filethreader.entity.DBStatus;
 import com.example.filethreader.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
@@ -10,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 @Service
 public class FileReaderService {
@@ -20,6 +22,9 @@ public class FileReaderService {
     // Autowire the taskExecutor bean
     @Autowired
     private Executor taskExecutor;
+
+    @Autowired
+    private UserService userService;
 
 
     /*
@@ -98,14 +103,57 @@ public class FileReaderService {
             futures.add(future); // Collect the futures
         }
 
-        // Wait for all futures to complete and combine results
-        List<User> allUsers = new ArrayList<>();
-        for (CompletableFuture<List<User>> future : futures) {
-            allUsers.addAll(future.join()); // This will block until each CompletableFuture is complete
-        }
+        /*
+         * The line below converts the `futures` list into an array of `CompletableFuture` objects:
+         *
+         * CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+         *
+         * Explanation:
+         * - `futures.toArray(new CompletableFuture[0])` is a common pattern in Java used to convert a list to an array.
+         * - The `0` inside `new CompletableFuture[0]` is not specifying the size of the array but is used to tell Java the **type** of the array you want (i.e., `CompletableFuture[]`).
+         * - Even though the array is empty (`0`), Java will automatically determine the correct size based on the size of the `futures` list.
+         * - This ensures the right type (`CompletableFuture[]`) is passed to `CompletableFuture.allOf()`, which expects an array of `CompletableFuture` objects.
+         */
 
-        return CompletableFuture.completedFuture(allUsers); // Return the combined result
+        CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+
+        return allOf.thenApply(v -> futures.stream()
+                .map(CompletableFuture::join)
+                .flatMap(List::stream) //flatMap will flatten these lists into a single stream of User objects
+                .collect(Collectors.toList()));
     }
+
+    /*
+     * Comparison of `join()` vs `allOf()` in `CompletableFuture`:
+     *
+     * 1. `CompletableFuture.allOf(...)`:
+     *    - `allOf` is a method that accepts an array of `CompletableFuture` objects and returns a single `CompletableFuture<Void>`.
+     *    - It completes when **all the futures in the array are complete**. In other words, it waits for all the given futures to finish, regardless of whether they succeed or fail.
+     *    - This method is useful when you want to **wait for multiple asynchronous tasks to complete** without worrying about their individual results.
+     *    - `allOf()` does not return the individual results of the futures, only a signal that all are done.
+     *    - Example:
+     *      CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+     *
+     * 2. `CompletableFuture.join()`:
+     *    - `join()` is a method that is called on a specific `CompletableFuture` to block and **wait for the future to complete**.
+     *    - Once the future completes, `join()` retrieves its result. If the future completes exceptionally, `join()` will throw an unchecked exception (`CompletionException`).
+     *    -  If you use join() in a loop or on individual futures, you're waiting for each result sequentially.
+ *          This means you block and collect the result from one future, then move on to the next, which can slow down your overall execution when there are many tasks.
+     *    - It is used to **get the result of a specific future** after it completes, and it blocks the current thread until the result is available.
+     *    - Example:
+     *      List<User> users = future.join();  // Waits for the future and retrieves the result.
+     *
+     * How they work together:
+     * 1. When using `CompletableFuture.allOf()`, it is common to wait for all futures to complete, but `allOf()` does not give you their results.
+     * 2. After `allOf()` completes (indicating that all futures are done), you can safely call `join()` on each future to retrieve their results without worrying about blocking because all futures are guaranteed to be done.
+     * 3. This combination allows you to wait for all futures to complete and then retrieve each result using `join()`, ensuring the entire process happens efficiently.
+     *
+     * Summary:
+     * - **`allOf`** is used to wait for all futures to complete (without getting individual results).
+     * - **`join()`** is used to block the current thread until the future completes and retrieves the result.
+     * - You can use both together when you want to wait for multiple asynchronous tasks to complete and then retrieve their results after the tasks are done.
+     */
+
 
     /*
      * In CompletableFuture, both join() and get() are used to wait for the completion
@@ -169,8 +217,6 @@ public class FileReaderService {
             String[] userData = line.split(",");
             if(userData[0].equals("id")) continue;
             User user = new User();
-
-            user.setID(Integer.parseInt(userData[0]));
             user.setFirstName(userData[1]);
             user.setLastName(userData[2]);
             user.setEmail(userData[3]);
@@ -183,6 +229,35 @@ public class FileReaderService {
         reader.close(); // Close the reader to free resources
 
         return users;
+    }
+
+    public CompletableFuture<List<DBStatus>> readFileAndUpdateDB(String[] paths) {
+
+        // Collect all futures into a list
+        List<CompletableFuture<DBStatus>> futures = new ArrayList<>();
+
+        for(String path : paths) {
+            CompletableFuture<DBStatus> future = CompletableFuture.supplyAsync(() -> {
+                try {
+                   List<User> users = readMultipleFilesHelper(path);
+                   boolean status = userService.saveAll(users);
+
+                   return new DBStatus(path, status);
+                } catch (Exception e) {
+                    System.err.println("Exception occured for path = "+ path +" exception e = " + e);
+
+                    return new DBStatus(path, false);
+                }
+            }, taskExecutor);
+
+            futures.add(future);
+        }
+
+        CompletableFuture<Void> allOff = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+
+        return allOff.thenApply(v -> futures.stream()
+                .map(CompletableFuture::join)
+                .collect(Collectors.toList()));
     }
 
 

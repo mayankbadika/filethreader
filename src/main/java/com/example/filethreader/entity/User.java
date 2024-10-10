@@ -1,18 +1,26 @@
 package com.example.filethreader.entity;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import lombok.*;
 
-import lombok.Getter;
-import lombok.Setter;
-
-
-@Setter
-@Getter
+@Entity
+@NoArgsConstructor
+@AllArgsConstructor
+@Data
+@Table(name = "Users")
 public class User {
-    private int ID;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-generate ID
+    private int id; // Renamed for convention
+
     private String firstName;
     private String lastName;
     private String email;
     private String gender;
     private String ipAddress;
-
 }
