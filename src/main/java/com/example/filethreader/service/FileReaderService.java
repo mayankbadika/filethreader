@@ -7,6 +7,9 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -86,7 +89,8 @@ public class FileReaderService {
 
 
     //@Async("taskExecutor")
-    public CompletableFuture<List<User>> readMultipleFiles(String[] paths) {
+    public CompletableFuture<List<User>> readMultipleFiles(String foldpath) throws IOException {
+        List<String> paths = getAllCSVFiles(foldpath);
         List<CompletableFuture<List<User>>> futures = new ArrayList<>();
 
         for (String path : paths) {
@@ -231,7 +235,10 @@ public class FileReaderService {
         return users;
     }
 
-    public CompletableFuture<List<DBStatus>> readFileAndUpdateDB(String[] paths) {
+    public CompletableFuture<List<DBStatus>> readFileAndUpdateDB(String foldPath) throws IOException {
+
+        // Get the list of CSV files in the folder
+        List<String> paths = getAllCSVFiles(foldPath);
 
         // Collect all futures into a list
         List<CompletableFuture<DBStatus>> futures = new ArrayList<>();
@@ -303,4 +310,12 @@ public class FileReaderService {
         return CompletableFuture.completedFuture(users);
     }
     */
+
+    public List<String> getAllCSVFiles(String folderPath) throws IOException {
+        return Files.list(Paths.get(folderPath))
+                        .filter(Files::isRegularFile)   // Only regular files
+                        .filter(path -> path.toString().endsWith(".csv"))  // Filter for CSV files
+                        .map(path -> folderPath+"/"+path.getFileName())  // Get the file name (without full path
+                        .collect(Collectors.toList());
+    }
 }

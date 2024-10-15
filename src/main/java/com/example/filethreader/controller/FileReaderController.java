@@ -1,5 +1,4 @@
 package com.example.filethreader.controller;
-import com.example.filethreader.entity.DBStatus;
 import com.example.filethreader.entity.User;
 import com.example.filethreader.service.FileReaderService;
 import com.example.filethreader.service.UserService;
@@ -8,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -22,7 +22,7 @@ public class FileReaderController {  // Renamed from FileReader
     private UserService userService;
 
     @GetMapping
-    public CompletableFuture<ResponseEntity<?>> getFileData(@RequestParam String[] path) {
+    public CompletableFuture<ResponseEntity<?>> getFileData(@RequestParam String path) {
         try {
             return fileReaderService.readMultipleFiles(path)
                     .thenApply(listOfUsers -> {
@@ -46,18 +46,22 @@ public class FileReaderController {  // Renamed from FileReader
     }
 
     @GetMapping("/test")
-    public CompletableFuture<ResponseEntity<?>> test (@RequestParam String[] paths) {
+    public CompletableFuture<ResponseEntity<?>> test (@RequestParam String path) {
         // Asynchronously call the service method
-        return fileReaderService.readFileAndUpdateDB(paths)
-                .thenApply(dbStatuses -> {
-                    // Once the future completes, construct the ResponseEntity
-                    if (!dbStatuses.isEmpty()) {
-                        // If there are results, return them with HTTP 200 (OK)
-                        return new ResponseEntity<>(dbStatuses, HttpStatus.OK);
-                    }
-                    // If no results, return HTTP 204 (No Content)
-                    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-                });
+        try {
+            return fileReaderService.readFileAndUpdateDB(path)
+                    .thenApply(dbStatuses -> {
+                        // Once the future completes, construct the ResponseEntity
+                        if (!dbStatuses.isEmpty()) {
+                            // If there are results, return them with HTTP 200 (OK)
+                            return new ResponseEntity<>(dbStatuses, HttpStatus.OK);
+                        }
+                        // If no results, return HTTP 204 (No Content)
+                        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+                    });
+        } catch (IOException e) {
+            return CompletableFuture.completedFuture(new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR));
+        }
     }
 
     @GetMapping("/getAllUsers")
