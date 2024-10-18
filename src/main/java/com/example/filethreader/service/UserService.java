@@ -3,10 +3,8 @@ package com.example.filethreader.service;
 import com.example.filethreader.entity.User;
 import com.example.filethreader.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -38,5 +36,17 @@ public class UserService {
             // Assume this might throw a runtime exception (e.g., database issues)
             userRepository::findAll, taskExecutor);
     }
+
+    public CompletableFuture<Void> deleteAllRecords() {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                userRepository.deleteAll(); // Perform the delete operation
+            } catch (Exception e) {
+                // Handle any exceptions that might occur during the delete operation
+                throw new RuntimeException("Failed to delete all records", e);
+            }
+        }, taskExecutor);
+    }
+
 
 }

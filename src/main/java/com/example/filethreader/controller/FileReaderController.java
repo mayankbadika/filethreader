@@ -71,6 +71,17 @@ public class FileReaderController {  // Renamed from FileReader
                 .exceptionally(e -> new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR));
     }
 
+    @DeleteMapping
+    public CompletableFuture<ResponseEntity<String>> deleteAllUsers() {
+        try {
+            userService.deleteAllRecords();
+
+            return CompletableFuture.completedFuture(new ResponseEntity<>("Deleted all records", HttpStatus.OK));
+        } catch (Exception e) {
+            return CompletableFuture.completedFuture(new ResponseEntity<>("Exception occured = "+e, HttpStatus.INTERNAL_SERVER_ERROR));
+        }
+    }
+
       /*
     @GetMapping
     public CompletableFuture<ResponseEntity<?>> getFileAddress(@RequestParam String path) {
