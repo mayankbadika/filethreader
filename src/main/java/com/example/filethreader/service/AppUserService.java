@@ -19,7 +19,7 @@ public class AppUserService {
 
     public void saveNewUser(AppUser user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        user.setRoles(Arrays.asList(new String[]{"user"}));
+        user.setRoles(user.getRoles());
 
         appUserRespository.save(user);
     }

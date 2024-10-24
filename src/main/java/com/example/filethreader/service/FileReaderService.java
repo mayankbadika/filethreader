@@ -267,50 +267,6 @@ public class FileReaderService {
                 .collect(Collectors.toList()));
     }
 
-
-    /*
-    @Async("taskExecutor")
-    public CompletableFuture<List<User>> readAllUsersFromFile(String path) throws Exception {
-        String threadName = Thread.currentThread().getName();
-
-        // Output the thread name (you can log this or print it)
-        System.out.println("Processing file: " + path + " on thread: " + threadName);
-        List<User> users = new ArrayList<>();
-        Resource resource = resourceLoader.getResource("file:" + path);
-
-        // Create an InputStream to read raw byte data from the file
-        // InputStream allows us to read data incrementally without loading the entire file into memory,
-        // which is essential for handling large files efficiently.
-        InputStream ir = resource.getInputStream();
-
-        // BufferedReader reads the character data from the InputStream
-        // It buffers input, making it more efficient to read text data line by line.
-        // This way, we can easily handle large text files without performance issues.
-        BufferedReader reader = new BufferedReader(new InputStreamReader(ir));
-
-        String line;
-        // Read the file line by line
-        while ((line = reader.readLine()) != null) {
-            String[] userData = line.split(",");
-            if(userData[0].equals("id")) continue;
-            User user = new User();
-
-            user.setID(Integer.parseInt(userData[0]));
-            user.setFirstName(userData[1]);
-            user.setLastName(userData[2]);
-            user.setEmail(userData[3]);
-            user.setGender(userData[4]);
-            user.setIpAddress(userData[5]);
-
-            users.add(user);
-        }
-
-        reader.close(); // Close the reader to free resources
-
-        return CompletableFuture.completedFuture(users);
-    }
-    */
-
     public List<String> getAllCSVFiles(String folderPath) throws IOException {
         return Files.list(Paths.get(folderPath))
                         .filter(Files::isRegularFile)   // Only regular files
