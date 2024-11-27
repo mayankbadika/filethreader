@@ -3,6 +3,8 @@ package com.example.filethreader.service;
 import com.example.filethreader.entity.User;
 import com.example.filethreader.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -35,12 +37,19 @@ public class UserService {
     }
 
     //if this throws exception the controller will catch it and log it
-
+    @Async
     public CompletableFuture<List<User>> getAllUsers() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        System.out.println("ASync Thread Authentication: " + authentication);
 
         return CompletableFuture.supplyAsync(() -> {
+            // Log the current thread name
+            String threadName = Thread.currentThread().getName();
+            System.out.println("Running in thread: " + threadName);
+
+            // Proceed with the database call
             try {
-                return userRepository.findAll(); // This might throw a runtime exception (e.g., database issues)
+                return userRepository.findAll();
             } catch (Exception e) {
                 System.err.println("Error occurred while fetching users: " + e.getMessage());
                 throw new RuntimeException("Error fetching users from the database", e);
@@ -48,7 +57,10 @@ public class UserService {
         }, taskExecutor);
     }
 
+
     public List<User> getAllUsersSync() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        System.out.println("Sync Thread Authentication: " + authentication);
         return userRepository.findAll();
     }
 

@@ -36,6 +36,6 @@ public class AsyncConfig {
         executor.initialize(); // Initialize the executor
 
         // Wrap the executor with DelegatingSecurityContextExecutor
-        return executor;
+        return new DelegatingSecurityContextExecutor(executor);
     }
 }

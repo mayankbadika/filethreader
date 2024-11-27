@@ -2,6 +2,7 @@ package com.example.filethreader.config;
 
 import com.example.filethreader.filter.JwtFilter;
 import com.example.filethreader.service.UserDetailServiceImpl;
+import jakarta.servlet.DispatcherType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,7 +37,7 @@ public class SecurityConfig {
         return http
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/file/**").hasRole("admin")// Protects the /files/** endpoint
-                        .anyRequest().permitAll()                      // Permits all other requests
+                        .anyRequest().permitAll()
                 )
                 .csrf(AbstractHttpConfigurer::disable)                 // Disable CSRF (enable in production if needed)
                 .sessionManagement(session -> session
